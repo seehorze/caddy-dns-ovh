@@ -44,6 +44,16 @@ tls {
 
 You can replace `{$*}` or `{env.*}` with the actual values if you prefer to put it directly in your config instead of an environment variable.
 
-## Authenticating
+With an OAuth2 service account, set `client_id` and `client_secret` instead of the three keys:
 
-See [the associated README in the libdns package](https://github.com/libdns/ovh#authenticating) for important information about credentials.
+```
+tls {
+  dns ovh {
+    endpoint ovh-eu
+    client_id {file./run/secrets/OVH_CLIENT_ID}
+    client_secret {file./run/secrets/OVH_CLIENT_SECRET}
+  }
+}
+```
+
+All fields go through Caddy's replacer, so `{env.*}` and `{file.*}` placeholders work.

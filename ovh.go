@@ -31,6 +31,8 @@ func (p *Provider) Provision(ctx caddy.Context) error {
 	p.Provider.ApplicationKey = repl.ReplaceAll(p.Provider.ApplicationKey, "")
 	p.Provider.ApplicationSecret = repl.ReplaceAll(p.Provider.ApplicationSecret, "")
 	p.Provider.ConsumerKey = repl.ReplaceAll(p.Provider.ConsumerKey, "")
+	p.Provider.ClientID = repl.ReplaceAll(p.Provider.ClientID, "")
+	p.Provider.ClientSecret = repl.ReplaceAll(p.Provider.ClientSecret, "")
 
 	return nil
 }
@@ -42,6 +44,14 @@ func (p *Provider) Provision(ctx caddy.Context) error {
 //     application_key <string>
 //     application_secret <string>
 //     consumer_key <string>
+// }
+//
+// or, with an OAuth2 service account:
+//
+// ovh {
+//     endpoint <string>
+//     client_id <string>
+//     client_secret <string>
 // }
 //
 func (p *Provider) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
@@ -75,6 +85,20 @@ func (p *Provider) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 			case "consumer_key":
 				if d.NextArg() {
 					p.Provider.ConsumerKey = d.Val()
+				}
+				if d.NextArg() {
+					return d.ArgErr()
+				}
+			case "client_id":
+				if d.NextArg() {
+					p.Provider.ClientID = d.Val()
+				}
+				if d.NextArg() {
+					return d.ArgErr()
+				}
+			case "client_secret":
+				if d.NextArg() {
+					p.Provider.ClientSecret = d.Val()
 				}
 				if d.NextArg() {
 					return d.ArgErr()
