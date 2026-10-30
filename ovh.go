@@ -1,6 +1,8 @@
 package ovh
 
 import (
+	"fmt"
+
 	"github.com/libdns/ovh"
 
 	"github.com/caddyserver/caddy/v2"
@@ -33,6 +35,28 @@ func (p *Provider) Provision(ctx caddy.Context) error {
 	p.Provider.ConsumerKey = repl.ReplaceAll(p.Provider.ConsumerKey, "")
 	p.Provider.ClientID = repl.ReplaceAll(p.Provider.ClientID, "")
 	p.Provider.ClientSecret = repl.ReplaceAll(p.Provider.ClientSecret, "")
+
+	return p.checkCredentials()
+}
+
+// checkCredentials refuses an incomplete or ambiguous configuration, so that
+// go-ovh never falls back to OVH_* environment variables or ovh.conf files.
+func (p *Provider) checkCredentials() error {
+	oauth2 := p.Provider.ClientID != "" || p.Provider.ClientSecret != ""
+	legacy := p.Provider.ApplicationKey != "" || p.Provider.ApplicationSecret != "" || p.Provider.ConsumerKey != ""
+
+	switch {
+	case p.Provider.Endpoint == "":
+		return fmt.Errorf("ovh: endpoint is required")
+	case oauth2 && legacy:
+		return fmt.Errorf("ovh: set client_id/client_secret or application_key/application_secret/consumer_key, not both")
+	case oauth2 && (p.Provider.ClientID == "" || p.Provider.ClientSecret == ""):
+		return fmt.Errorf("ovh: client_id and client_secret must both be set")
+	case legacy && (p.Provider.ApplicationKey == "" || p.Provider.ApplicationSecret == "" || p.Provider.ConsumerKey == ""):
+		return fmt.Errorf("ovh: application_key, application_secret and consumer_key must all be set")
+	case !oauth2 && !legacy:
+		return fmt.Errorf("ovh: no credentials: set client_id and client_secret, or application_key, application_secret and consumer_key")
+	}
 
 	return nil
 }

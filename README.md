@@ -56,4 +56,11 @@ tls {
 }
 ```
 
-All fields go through Caddy's replacer, so `{env.*}` and `{file.*}` placeholders work.
+All fields go through Caddy's replacer, so `{env.*}` and `{file.*}` placeholders work. The module
+refuses, at provision time, a block without an endpoint, without any credential, with an
+incomplete credential, or with both kinds. go-ovh therefore never falls back to `OVH_*`
+environment variables or `ovh.conf` files for the credential.
+
+## Authenticating
+
+See [the associated README in the libdns package](https://github.com/libdns/ovh#authenticating) for important information about credentials.

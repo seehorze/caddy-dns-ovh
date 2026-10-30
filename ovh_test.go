@@ -3,6 +3,7 @@ package ovh
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/caddyserver/caddy/v2"
@@ -63,5 +64,33 @@ func TestProvisionReplacesFilePlaceholders(t *testing.T) {
 	}
 	if p.ClientID != "EU.id-from-file" || p.ClientSecret != "secret-from-file" {
 		t.Fatalf("after Provision: client_id=%q client_secret=%q", p.ClientID, p.ClientSecret)
+	}
+}
+
+func TestProvisionCredentialRules(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "absent")
+	for _, tc := range []struct {
+		name    string
+		p       *ovh.Provider
+		wantErr string
+	}{
+		{"oauth2", &ovh.Provider{Endpoint: "ovh-eu", ClientID: "id", ClientSecret: "secret"}, ""},
+		{"legacy", &ovh.Provider{Endpoint: "ovh-eu", ApplicationKey: "ak", ApplicationSecret: "as", ConsumerKey: "ck"}, ""},
+		{"no credential", &ovh.Provider{Endpoint: "ovh-eu"}, "no credentials"},
+		{"missing secret file", &ovh.Provider{Endpoint: "ovh-eu", ClientID: "{file." + missing + "}", ClientSecret: "{file." + missing + "}"}, "no credentials"},
+		{"client id only", &ovh.Provider{Endpoint: "ovh-eu", ClientID: "id"}, "client_id and client_secret"},
+		{"legacy without consumer key", &ovh.Provider{Endpoint: "ovh-eu", ApplicationKey: "ak", ApplicationSecret: "as"}, "application_key, application_secret and consumer_key"},
+		{"both kinds", &ovh.Provider{Endpoint: "ovh-eu", ClientID: "id", ClientSecret: "secret", ConsumerKey: "ck"}, "not both"},
+		{"no endpoint", &ovh.Provider{ClientID: "id", ClientSecret: "secret"}, "endpoint"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := (&Provider{tc.p}).Provision(caddy.Context{})
+			switch {
+			case tc.wantErr == "" && err != nil:
+				t.Fatalf("Provision: %v", err)
+			case tc.wantErr != "" && (err == nil || !strings.Contains(err.Error(), tc.wantErr)):
+				t.Fatalf("Provision error = %v, want it to contain %q", err, tc.wantErr)
+			}
+		})
 	}
 }
